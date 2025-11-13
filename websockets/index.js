@@ -9,3 +9,6 @@ io.on("connection", (socket) => {
         socket.emit("echo", msg);
     });
 });
+
+
+console.log("WebSocket server is running on ws://localhost:3000");

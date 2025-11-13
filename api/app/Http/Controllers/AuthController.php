@@ -20,7 +20,6 @@ class AuthController extends Controller
     {
         $validated = $request->validated();
 
-        // Upload de foto (opcional)
         $photoFilename = null;
         if ($request->hasFile('photo')) {
             $photo = $request->file('photo');
