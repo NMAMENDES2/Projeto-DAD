@@ -12,6 +12,8 @@ Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::get('/photos/{filename}', [UserController::class, 'showPhoto']);
 
+Route::get('/users/{id}', [UserController::class, 'teste']);
+
 // ===========================
 // ROTAS PROTEGIDAS
 // ===========================

@@ -16,8 +16,9 @@ class AuthController extends Controller
      * REGISTO (G1)
      * Cria novo player com 10 brain coins
      */
-    public function register(RegisterRequest $request)
-    {
+   public function register(RegisterRequest $request)
+{
+    try {
         $validated = $request->validated();
 
         $photoFilename = null;
@@ -27,7 +28,6 @@ class AuthController extends Controller
             $photo->move(storage_path('app/public/photos'), $photoFilename);
         }
 
-        // Criar utilizador com 10 brain coins (G1)
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -41,10 +41,19 @@ class AuthController extends Controller
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
+            'message' => 'ok',
             'token' => $token,
             'user' => $user
         ], 201);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'failed',
+            'error' => $e->getMessage()
+        ], 500);
     }
+}
+
 
     /**
      * LOGIN (G1)

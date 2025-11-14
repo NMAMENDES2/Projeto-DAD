@@ -18,7 +18,7 @@ const responseData = ref('')
 const register = async () => {
   try {
     if (password.value !== confirmPassword.value) {
-      consoele.log("Tá fodido isto")
+      console.log("Tá fodido isto")
       return
     }
 
@@ -28,10 +28,11 @@ const register = async () => {
       email: email.value,
       password: password.value,
     })
+    console.log(response.status)
+    console.log("Response:", response)
 
-    if (response?.message === 'User registered successfully.' && response?.user) {
-      responseData.value = 'Registration successful! Redirecting...'
-      setTimeout(() => router.push('/'), 2000)
+    if (response?.message === 'ok' && response?.user) {
+        console.log("Registration successful:", response)
     }
   } catch (error) {
     console.error('Registration failed:', error)

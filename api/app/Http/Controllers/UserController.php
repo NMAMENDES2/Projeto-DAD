@@ -21,8 +21,8 @@ class UserController extends Controller
         }
 
         $type = $request->input('type');
-        
-        $users = $type 
+
+        $users = $type
             ? User::where('type', $type)->paginate(15)
             : User::paginate(15);
 
@@ -59,6 +59,21 @@ class UserController extends Controller
         return new UserResource($user);
     }
 
+    public function teste($id)
+    {
+        $user = User::find($id);
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'User not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'user' => $user
+        ], 200);
+    }
+
     /**
      * VER UTILIZADOR ESPECÍFICO
      */
@@ -78,7 +93,7 @@ class UserController extends Controller
         }
 
         $user->update($request->validated());
-        
+
         return new UserResource($user);
     }
 
