@@ -16,43 +16,42 @@ class AuthController extends Controller
      * REGISTO (G1)
      * Cria novo player com 10 brain coins
      */
-   public function register(RegisterRequest $request)
-{
-    try {
-        $validated = $request->validated();
+    public function register(RegisterRequest $request)
+    {
+        try {
+            $validated = $request->validated();
 
-        $photoFilename = null;
-        if ($request->hasFile('photo')) {
-            $photo = $request->file('photo');
-            $photoFilename = time() . '_' . uniqid() . '.' . $photo->getClientOriginalExtension();
-            $photo->move(storage_path('app/public/photos'), $photoFilename);
+            $photoFilename = null;
+            if ($request->hasFile('photo')) {
+                $photo = $request->file('photo');
+                $photoFilename = time() . '_' . uniqid() . '.' . $photo->getClientOriginalExtension();
+                $photo->move(storage_path('app/public/photos'), $photoFilename);
+            }
+
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'nickname' => $validated['nickname'],
+                'password' => Hash::make($validated['password']),
+                'type' => 'P',
+                'brain_coins_balance' => 10,
+                'photo_filename' => $photoFilename,
+            ]);
+
+            $token = $user->createToken('auth-token')->plainTextToken;
+
+            return response()->json([
+                'message' => 'ok',
+                'token' => $token,
+                'user' => $user
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'failed',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'nickname' => $validated['nickname'],
-            'password' => Hash::make($validated['password']),
-            'type' => 'P',
-            'brain_coins_balance' => 10,
-            'photo_filename' => $photoFilename,
-        ]);
-
-        $token = $user->createToken('auth-token')->plainTextToken;
-
-        return response()->json([
-            'message' => 'ok',
-            'token' => $token,
-            'user' => $user
-        ], 201);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'message' => 'failed',
-            'error' => $e->getMessage()
-        ], 500);
     }
-}
 
 
     /**
@@ -60,31 +59,45 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request)
     {
-        $credentials = $request->validated();
+        try {
+            $credentials = $request->validated();
 
-        if (!Auth::attempt($credentials)) {
-            throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
-            ]);
-        }
+            if (!Auth::attempt($credentials)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The provided credentials are incorrect.',
+                    'errors' => ['email' => ['Invalid email or password.']]
+                ], 422);
+            }
 
-        $user = Auth::user();
+            $user = Auth::user();
 
-        // Verificar se está bloqueado (G1)
-        if ($user->blocked) {
-            Auth::logout();
+            // Check if blocked
+            if ($user->blocked) {
+                Auth::logout();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your account has been blocked.'
+                ], 403);
+            }
+
+            $token = $user->createToken('auth-token')->plainTextToken;
+
             return response()->json([
-                'message' => 'Your account has been blocked.'
-            ], 403);
+                'success' => true,
+                'message' => 'Login successful',
+                'token' => $token,
+                'user' => $user
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An unexpected error occurred.',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $token = $user->createToken('auth-token')->plainTextToken;
-
-        return response()->json([
-            'token' => $token,
-            'user' => $user
-        ]);
     }
+
 
     /**
      * LOGOUT (G1)
@@ -92,7 +105,7 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
-        
+
         return response()->json([
             'message' => 'Logged out successfully'
         ]);
@@ -105,9 +118,9 @@ class AuthController extends Controller
     {
         $user = $request->user();
         $user->currentAccessToken()->delete();
-        
+
         $token = $user->createToken('auth-token')->plainTextToken;
-        
+
         return response()->json([
             'token' => $token
         ]);
