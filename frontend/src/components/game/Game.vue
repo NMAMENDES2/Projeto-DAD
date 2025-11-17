@@ -1,6 +1,11 @@
 <template>
-  <div class="min-h-screen bg-neutral-100 flex flex-col items-center p-6">
+  <div class="min-h-screen bg-neutral-100 flex flex-col items-center p-6 overflow-hidden">
+
     <h1 class="text-3xl font-bold mb-6">Bisca - Game</h1>
+
+    <div v-if="warning" class="mb-4 text-red-600 font-semibold">
+      {{ warning }}
+    </div>
 
     <!-- Deal Button -->
     <Button @click="dealCards" variant="default" class="mb-12">
@@ -11,12 +16,9 @@
     <div class="w-full max-w-4xl mb-12">
       <h2 class="text-xl font-semibold mb-2 text-center">Player 1</h2>
       <div class="flex justify-center space-x-4">
-        <Card
-          v-for="(card, index) in game.player1"
-          :key="index"
+        <Card v-for="(card, index) in game.player1" :key="index"
           class="w-24 h-32 flex items-center justify-center shadow-lg rounded-lg cursor-pointer hover:scale-105 transition-transform"
-          @click="playCard(1, index)"
-        >
+          @click="playCard(1, index)">
           <CardContent class="p-0 flex items-center justify-center">
             <img :src="card.image" :alt="card.title" class="w-auto h-full object-contain" />
           </CardContent>
@@ -27,17 +29,17 @@
     <!-- Board -->
     <div class="w-full max-w-4xl mb-12">
       <h2 class="text-xl font-semibold mb-2 text-center">Board</h2>
+
       <div class="flex justify-center space-x-6">
-        <Card
-          v-for="(card, index) in game.board"
-          :key="index"
-          class="w-24 h-32 flex items-center justify-center shadow-lg rounded-lg"
-        >
+        <Card v-for="(card, index) in game.board" :key="index"
+          class="w-24 h-32 flex items-center justify-center shadow-lg rounded-lg">
           <CardContent class="p-0 flex items-center justify-center">
             <img :src="card.image" :alt="card.title" class="w-auto h-full object-contain" />
           </CardContent>
         </Card>
-        <div v-if="game.board.length === 0" class="w-24 h-32 flex items-center justify-center border-2 border-dashed rounded-lg text-gray-400">
+
+        <div v-if="game.board.length === 0"
+          class="w-24 h-32 flex items-center justify-center border-2 border-dashed rounded-lg text-gray-400">
           Empty
         </div>
       </div>
@@ -47,33 +49,53 @@
     <div class="w-full max-w-4xl">
       <h2 class="text-xl font-semibold mb-2 text-center">Player 2</h2>
       <div class="flex justify-center space-x-4">
-        <Card
-          v-for="(card, index) in game.player2"
-          :key="index"
+        <Card v-for="(card, index) in game.player2" :key="index"
           class="w-24 h-32 flex items-center justify-center shadow-lg rounded-lg cursor-pointer hover:scale-105 transition-transform"
-          @click="playCard(2, index)"
-        >
+          @click="playCard(2, index)">
           <CardContent class="p-0 flex items-center justify-center">
             <img :src="card.image" :alt="card.title" class="w-auto h-full object-contain" />
           </CardContent>
         </Card>
       </div>
     </div>
+
+    <!-- FIXED DECK ON RIGHT SIDE -->
+    <div class="fixed right-100 top-1/2 -translate-y-1/2">
+      <div class="relative w-24 h-32">
+        <img
+          v-for="i in game.remainingDeck.length"
+          :key="i"
+          :src="game.faceDownCard.image"
+          class="absolute w-full h-full object-contain rounded-lg shadow-md"
+          :style="{ top: `${i * 1.5}px`, left: `${i * 1.5}px` }"
+        />
+      </div>
+    </div>
+
   </div>
 </template>
+
 
 <script setup>
 import { useGameStore } from "@/stores/game"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { ref } from "vue"
 
 const game = useGameStore()
+const warning = ref("")
 
 const dealCards = () => {
   game.deal(3) // deals 3 cards to both players
 }
 
 const playCard = (player, index) => {
-  game.playCard(player, index)
+  const result = game.playCard(player, index)
+  if(!result.sucess) {
+    warning.value = result.message
+    setTimeout(() => {
+        warning.value = ""
+    }, 2000);
+  }
 }
 </script>
