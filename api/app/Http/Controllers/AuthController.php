@@ -59,6 +59,8 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request)
     {
+
+        error_log("Login attempt for email: " . $request->input('email'));
         try {
             $credentials = $request->validated();
 

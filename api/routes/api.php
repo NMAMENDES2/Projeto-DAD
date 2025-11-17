@@ -15,6 +15,15 @@ Route::get('/photos/{filename}', [UserController::class, 'showPhoto']);
 
 Route::get('/users/{id}', [UserController::class, 'teste']);
 
+Route::get('/users/me', function (Request $request) {
+    error_log('Bearer token: ' . $request->bearerToken());
+    error_log('Accept header: ' . $request->header('Accept'));
+    error_log('All headers: ' . json_encode($request->headers->all()));
+    error_log('User object: ' . print_r($request->user(), true));
+
+    return $request->user();
+})->middleware('auth:sanctum');
+
 // ===========================
 // ROTAS PROTEGIDAS
 // ===========================
@@ -25,10 +34,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/auth/refreshtoken', [AuthController::class, 'refreshToken']);
     
-    // Ver perfil próprio
-    Route::get('/users/me', function (Request $request) {
-        return $request->user();
-    });
     
     // Upload foto e password
     Route::post('/users/{userId}/photo', [UserController::class, 'uploadPhoto']);
