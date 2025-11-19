@@ -1,45 +1,98 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
+
+// Controllers existentes
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
-use Illuminate\Http\Request; 
 
-// ===========================
+// Controllers do jogo (a criar)
+use App\Http\Controllers\GameController;
+use App\Http\Controllers\StatisticsController;
+use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\GameHistoryController;
+
+// =====================================
 // ROTAS PÚBLICAS
-// ===========================
+// =====================================
 
+// Autenticação
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
+
+// Fotos (perfil)
 Route::get('/photos/{filename}', [UserController::class, 'showPhoto']);
 
-Route::get('/users/{id}', [UserController::class, 'teste']);
+// Leaderboards globais (quando existir GameController)
+Route::get('/games/globalscores/singleplayer/{type}', [GameController::class, 'globalScoresSingleplayer']);
+Route::get('/games/globalscores/multiplayer/{type}', [GameController::class, 'globalScoresMultiplayer']);
 
-Route::get('/users/me', function (Request $request) {
-    error_log('Bearer token: ' . $request->bearerToken());
-    error_log('Accept header: ' . $request->header('Accept'));
-    error_log('All headers: ' . json_encode($request->headers->all()));
-    error_log('User object: ' . print_r($request->user(), true));
+// Estatísticas globais (quando existir StatisticsController)
+Route::get('/statistics', [StatisticsController::class, 'getSummary']);
 
-    return $request->user();
-})->middleware('auth:sanctum');
 
-// ===========================
-// ROTAS PROTEGIDAS
-// ===========================
-
+// =====================================
+// ROTAS PROTEGIDAS (auth:sanctum)
+// =====================================
 Route::middleware('auth:sanctum')->group(function () {
-    
-    // Autenticação
+
+    // ###############################
+    // AUTH
+    // ###############################
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/auth/refreshtoken', [AuthController::class, 'refreshToken']);
-    
-    
-    // Upload foto e password
-    Route::post('/users/{userId}/photo', [UserController::class, 'uploadPhoto']);
-    Route::post('/users/{userId}/password', [UserController::class, 'updatePassword']);
-    Route::post('/users/{userId}/block', [UserController::class, 'toggleBlock']);
-    
-    // CRUD de utilizadores (estilo professor)
-    Route::apiResource('users', UserController::class);
+
+    Route::get('/auth/me', function (Request $request) {
+        return $request->user();
+    });
+
+    // ###############################
+    // PERFIL
+    // ###############################
+    Route::get('/users/me', [UserController::class, 'me']);
+    Route::put('/users/me', [UserController::class, 'update']);
+
+    Route::post('/users/me/photo', [UserController::class, 'uploadPhoto']);
+    Route::post('/users/me/password', [UserController::class, 'updatePassword']);
+
+    // ###############################
+    // SINGLEPLAYER (Bisca)
+    // ###############################
+    Route::post('/games/singleplayer/start', [GameController::class, 'startSinglePlayer']);
+    Route::post('/games/singleplayer/play', [GameController::class, 'playCardSinglePlayer']);
+    Route::post('/games/singleplayer/finish', [GameController::class, 'finishSinglePlayer']);
+
+    // ###############################
+    // MULTIPLAYER (Bisca + WebSockets)
+    // ###############################
+    Route::post('/games/multiplayer/create', [GameController::class, 'createMultiplayer']);
+    Route::post('/games/multiplayer/join/{gameId}', [GameController::class, 'joinMultiplayer']);
+    Route::post('/games/multiplayer/leave/{gameId}', [GameController::class, 'leaveMultiplayer']);
+    Route::post('/games/multiplayer/finish/{gameId}', [GameController::class, 'finishMultiplayer']);
+
+    // ###############################
+    // HISTÓRICO DE JOGOS
+    // ###############################
+    Route::get('/game-history', [GameHistoryController::class, 'getPersonalGameHistory']);
+    Route::get('/games', [GameController::class, 'index']);
+
+    // ###############################
+    // ESTATÍSTICAS PESSOAIS
+    // ###############################
+    Route::get('/personal-statistics', [StatisticsController::class, 'getPersonalStatistics']);
+
+    // ###############################
+    // TRANSAÇÕES / COINS
+    // ###############################
+    Route::get('/user-transactions', [TransactionController::class, 'getMyTransactions']);
+    Route::post('/purchase-coins', [PurchaseController::class, 'purchaseCoins']);
+
+    // ADMIN – gestão de utilizadores
+    Route::get('/users', [UserController::class, 'index']);
+    Route::post('/users', [UserController::class, 'store']);
+    Route::put('/users/{user}', [UserController::class, 'update']);
+    Route::delete('/users/{user}', [UserController::class, 'destroy']);
+    Route::post('/users/{id}/block', [UserController::class, 'toggleBlock']);
 });

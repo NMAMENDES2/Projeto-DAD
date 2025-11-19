@@ -7,22 +7,33 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class UserResource extends JsonResource
 {
+    /**
+     * Transform the resource into an array.
+     */
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'name' => $this->name,
-            'email' => $this->email,
-            'nickname' => $this->nickname,
-            'type' => $this->type,
-            'brain_coins_balance' => $this->brain_coins_balance,
-            'photo_filename' => $this->photo_filename,
-            'photo_url' => $this->photo_filename 
-                ? url('/api/photos/' . $this->photo_filename) 
+            'id'        => $this->id,
+            'name'      => $this->name,
+            'nickname'  => $this->nickname,
+            'email'     => $this->email,
+            'type'      => $this->type,
+            'blocked'   => (bool) $this->blocked,
+
+            // Foto — devolve NULL ou a URL completa
+            'photo'     => $this->photo_avatar_filename 
+                ? url('/api/photos/' . $this->photo_avatar_filename) 
                 : null,
-            'blocked' => $this->blocked,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+
+            // Saldo (útil no jogo Bisca)
+            'coins_balance' => $this->coins_balance,
+
+            // Dados extra em JSON (opcional)
+            'custom'    => $this->custom ?? null,
+
+            // Datas úteis
+            'created_at' => $this->created_at?->toDateTimeString(),
+            'updated_at' => $this->updated_at?->toDateTimeString(),
         ];
     }
 }

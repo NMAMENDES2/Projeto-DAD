@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateUserRequest;
+use App\Http\Requests\UpdatePasswordRequest;
+use App\Http\Requests\UpdateImageRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -11,71 +13,55 @@ use Illuminate\Support\Facades\Hash;
 class UserController extends Controller
 {
     /**
-     * LISTAR UTILIZADORES (Admin)
+     * LISTAR UTILIZADORES (Apenas Admin)
      */
     public function index(Request $request)
     {
-        // Verificar se é admin
         if ($request->user()->type !== 'A') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $type = $request->input('type');
+        $type = $request->query('type');
 
         $users = $type
             ? User::where('type', $type)->paginate(15)
             : User::paginate(15);
 
-        return response()->json($users);
+        return UserResource::collection($users);
     }
 
     /**
-     * CRIAR UTILIZADOR/ADMIN
+     * CRIAR UTILIZADOR (Admin)
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|min:1',
-            'nickname' => 'required|unique:users|min:1',
-            'email' => 'required|email|unique:users',
-            'password' => 'required|min:3',
-            'type' => 'required|in:P,A',
-        ]);
-
-        // Se não for admin, só pode criar Players
-        if ($request->user()->type !== 'A' && $validated['type'] === 'A') {
+        if ($request->user()->type !== 'A') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
+        $validated = $request->validate([
+            'name' => 'required|string|min:2',
+            'nickname' => 'required|string|unique:users,nickname',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:3',
+            'type' => 'required|in:A,P',
+        ]);
+
         $user = User::create([
             'name' => $validated['name'],
-            'email' => $validated['email'],
             'nickname' => $validated['nickname'],
+            'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'type' => $validated['type'],
-            'brain_coins_balance' => $validated['type'] === 'P' ? 10 : 0,
+            'coins_balance' => $validated['type'] === 'P' ? 0 : 0,
+            'blocked' => false,
         ]);
 
         return new UserResource($user);
     }
 
-    public function teste($id)
-    {
-        $user = User::find($id);
-
-        if (!$user) {
-            return response()->json([
-                'message' => 'User not found'
-            ], 404);
-        }
-
-        return response()->json([
-            'user' => $user
-        ], 200);
-    }
-
     /**
-     * VER UTILIZADOR ESPECÍFICO
+     * MOSTRAR UM UTILIZADOR
      */
     public function show(User $user)
     {
@@ -83,11 +69,11 @@ class UserController extends Controller
     }
 
     /**
-     * ATUALIZAR UTILIZADOR (G1)
+     * ATUALIZAR PERFIL DO UTILIZADOR
      */
     public function update(UpdateUserRequest $request, User $user)
     {
-        // Verificar permissões
+        // Apenas o próprio ou um admin
         if ($request->user()->id !== $user->id && $request->user()->type !== 'A') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
@@ -98,137 +84,118 @@ class UserController extends Controller
     }
 
     /**
-     * ELIMINAR UTILIZADOR (G1)
+     * APAGAR UTILIZADOR (Soft Delete)
      */
     public function destroy(Request $request, User $user)
     {
-        // Se for o próprio user, requer confirmação
+        // O próprio tem de confirmar com password
         if ($request->user()->id === $user->id) {
-            $request->validate([
-                'password' => 'required|string',
-            ]);
+            $request->validate(['password' => 'required|string']);
 
             if (!Hash::check($request->password, $user->password)) {
-                return response()->json([
-                    'message' => 'Password is incorrect.'
-                ], 403);
+                return response()->json(['message' => 'Password incorrect'], 403);
             }
         }
-        // Se for admin, pode eliminar sem confirmação
+        // Admin pode apagar diretamente
         else if ($request->user()->type !== 'A') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $user->delete(); // Soft delete
+        $user->delete();
 
-        return response()->json([
-            'message' => 'User deleted successfully'
-        ]);
+        return response()->json(['message' => 'User deleted successfully']);
     }
 
     /**
-     * UPLOAD DE FOTO (G1)
+     * ALTERAR PASSWORD
      */
-    public function uploadPhoto(Request $request, $userId)
+    public function updatePassword(UpdatePasswordRequest $request, $id)
     {
-        $user = User::findOrFail($userId);
-
-        // Verificar permissões
-        if ($request->user()->id !== $user->id && $request->user()->type !== 'A') {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $request->validate([
-            'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
-        ]);
-
-        // Apagar foto antiga
-        if ($user->photo_filename) {
-            $oldPath = storage_path('app/public/photos/' . $user->photo_filename);
-            if (file_exists($oldPath)) {
-                unlink($oldPath);
-            }
-        }
-
-        // Guardar nova foto
-        $photo = $request->file('photo');
-        $photoFilename = time() . '_' . uniqid() . '.' . $photo->getClientOriginalExtension();
-        $photo->move(storage_path('app/public/photos'), $photoFilename);
-
-        $user->photo_filename = $photoFilename;
-        $user->save();
-
-        return response()->json([
-            'message' => 'Photo uploaded successfully',
-            'photo_filename' => $photoFilename
-        ]);
-    }
-
-    /**
-     * ALTERAR PASSWORD (G1)
-     */
-    public function updatePassword(Request $request, $userId)
-    {
-        $user = User::findOrFail($userId);
+        $user = User::findOrFail($id);
 
         if ($request->user()->id !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $request->validate([
-            'current_password' => 'required|string',
-            'new_password' => 'required|string|min:3|confirmed',
-        ]);
-
         if (!Hash::check($request->current_password, $user->password)) {
-            return response()->json([
-                'message' => 'Current password is incorrect.'
-            ], 400);
+            return response()->json(['message' => 'Current password incorrect'], 400);
         }
 
         $user->password = Hash::make($request->new_password);
         $user->save();
 
+        return response()->json(['message' => 'Password updated successfully']);
+    }
+
+    /**
+     * UPLOAD DE FOTO DE PERFIL
+     */
+    public function uploadPhoto(UpdateImageRequest $request, $id)
+    {
+        $user = User::findOrFail($id);
+
+        // Apenas o próprio ou admin
+        if ($request->user()->id !== $user->id && $request->user()->type !== 'A') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        if ($user->photo_avatar_filename) {
+            $oldPath = storage_path('app/public/avatars/' . $user->photo_avatar_filename);
+            if (file_exists($oldPath)) unlink($oldPath);
+        }
+
+        $photo = $request->file('photo');
+        $filename = time() . '_' . uniqid() . '.' . $photo->getClientOriginalExtension();
+        $photo->move(storage_path('app/public/avatars'), $filename);
+
+        $user->photo_avatar_filename = $filename;
+        $user->save();
+
         return response()->json([
-            'message' => 'Password changed successfully'
+            'message' => 'Photo uploaded successfully',
+            'photo_avatar_filename' => $filename
         ]);
     }
 
     /**
-     * BLOQUEAR/DESBLOQUEAR (Admin)
+     * BLOQUEAR / DESBLOQUEAR UTILIZADOR (Admin)
      */
-    public function toggleBlock(Request $request, $userId)
+    public function toggleBlock(Request $request, $id)
     {
         if ($request->user()->type !== 'A') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $user = User::findOrFail($userId);
+        $request->validate(['blocked' => 'required|boolean']);
 
-        $request->validate([
-            'blocked' => 'required|boolean',
-        ]);
-
+        $user = User::findOrFail($id);
         $user->blocked = $request->blocked;
         $user->save();
 
         return response()->json([
-            'message' => 'User status updated',
-            'user' => $user
+            'message' => 'User block status updated',
+            'user' => new UserResource($user)
         ]);
     }
 
     /**
-     * SERVIR FOTO
+     * SERVIR FOTO DO USER
      */
     public function showPhoto($filename)
     {
-        $path = storage_path('app/public/photos/' . $filename);
+        $path = storage_path('app/public/avatars/' . $filename);
 
         if (!file_exists($path)) {
-            abort(404);
+            return response()->json(['message' => 'Image not found'], 404);
         }
 
         return response()->file($path);
+    }
+    /**
+     * DEVOLVE OS DADOS DO UTILIZADOR AUTENTICADO
+     */
+    public function me(Request $request)
+    {
+        return new UserResource($request->user());
     }
 }
