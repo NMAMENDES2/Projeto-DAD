@@ -12,22 +12,21 @@ const email = ref('')
 const password = ref('')
 const responseData = ref('')
 
+const emit = defineEmits(['success'])
+
 const submit = async () => {
+  console.log('Submitting login form...')
+  const user = await storeAuth.login({
+    email: email.value,
+    password: password.value,
+  })
 
-    const user = await storeAuth.login({
-        email: email.value,
-        password: password.value
-    })
-
-    if (!user) {
-    console.log('Login failed')
-    return
-    }
-
-    console.log(user)
-    responseData.value = user.name
-
-    router.push("/")
+  if (user) {
+    console.log('Login successful, emitting success event')
+    emit('success')
+  } else {
+    console.log('Login failed in component')
+  }
 }
 
 </script>

@@ -26,11 +26,11 @@ Route::post('/auth/login', [AuthController::class, 'login']);
 Route::get('/photos/{filename}', [UserController::class, 'showPhoto']);
 
 // Leaderboards globais (quando existir GameController)
-Route::get('/games/globalscores/singleplayer/{type}', [GameController::class, 'globalScoresSingleplayer']);
-Route::get('/games/globalscores/multiplayer/{type}', [GameController::class, 'globalScoresMultiplayer']);
+// Route::get('/games/globalscores/singleplayer/{type}', [GameController::class, 'globalScoresSingleplayer']);
+// Route::get('/games/globalscores/multiplayer/{type}', [GameController::class, 'globalScoresMultiplayer']);
 
 // Estatísticas globais (quando existir StatisticsController)
-Route::get('/statistics', [StatisticsController::class, 'getSummary']);
+// Route::get('/statistics', [StatisticsController::class, 'getSummary']);
 
 
 // =====================================
@@ -60,34 +60,33 @@ Route::middleware('auth:sanctum')->group(function () {
     // ###############################
     // SINGLEPLAYER (Bisca)
     // ###############################
-    Route::post('/games/singleplayer/start', [GameController::class, 'startSinglePlayer']);
-    Route::post('/games/singleplayer/play', [GameController::class, 'playCardSinglePlayer']);
-    Route::post('/games/singleplayer/finish', [GameController::class, 'finishSinglePlayer']);
+    // Route::post('/games/singleplayer/start', [GameController::class, 'startSinglePlayer']);
+    // Route::post('/games/singleplayer/play', [GameController::class, 'playCardSinglePlayer']);
+    // Route::post('/games/singleplayer/finish', [GameController::class, 'finishSinglePlayer']);
 
     // ###############################
     // MULTIPLAYER (Bisca + WebSockets)
     // ###############################
-    Route::post('/games/multiplayer/create', [GameController::class, 'createMultiplayer']);
-    Route::post('/games/multiplayer/join/{gameId}', [GameController::class, 'joinMultiplayer']);
-    Route::post('/games/multiplayer/leave/{gameId}', [GameController::class, 'leaveMultiplayer']);
-    Route::post('/games/multiplayer/finish/{gameId}', [GameController::class, 'finishMultiplayer']);
+    // Route::post('/games/multiplayer/create', [GameController::class, 'createMultiplayer']);
+    // Route::post('/games/multiplayer/join/{gameId}', [GameController::class, 'joinMultiplayer']);
+    // Route::post('/games/multiplayer/leave/{gameId}', [GameController::class, 'leaveMultiplayer']);
+    // Route::post('/games/multiplayer/finish/{gameId}', [GameController::class, 'finishMultiplayer']);
 
     // ###############################
     // HISTÓRICO DE JOGOS
     // ###############################
-    Route::get('/game-history', [GameHistoryController::class, 'getPersonalGameHistory']);
-    Route::get('/games', [GameController::class, 'index']);
+    // Route::get('/game-history', [GameHistoryController::class, 'getPersonalGameHistory']);
+    // Route::get('/games', [GameController::class, 'index']);
 
     // ###############################
     // ESTATÍSTICAS PESSOAIS
     // ###############################
-    Route::get('/personal-statistics', [StatisticsController::class, 'getPersonalStatistics']);
-
+    // Route::get('/personal-statistics', [StatisticsController::class, 'getPersonalStatistics']);
     // ###############################
     // TRANSAÇÕES / COINS
     // ###############################
-    Route::get('/user-transactions', [TransactionController::class, 'getMyTransactions']);
-    Route::post('/purchase-coins', [PurchaseController::class, 'purchaseCoins']);
+    // Route::get('/user-transactions', [TransactionController::class, 'getMyTransactions']);
+    // Route::post('/purchase-coins', [PurchaseController::class, 'purchaseCoins']);
 
     // ADMIN – gestão de utilizadores
     Route::get('/users', [UserController::class, 'index']);

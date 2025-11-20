@@ -15,7 +15,10 @@ const password = ref('')
 const confirmPassword = ref('')
 const responseData = ref('')
 
+const emit = defineEmits(['success'])
+
 const register = async () => {
+  console.log('Submitting register form...')
   try {
     if (password.value !== confirmPassword.value) {
       console.log("As passwords não coincidem")
@@ -30,18 +33,9 @@ const register = async () => {
       password_confirmation: confirmPassword.value
     })
 
-    console.log("Response:", response)
-
-    if (response && response.message === 'ok') {
+    if (response) {
       console.log("Registration successful:", response)
-
-      // login automático depois de registar
-      await storeAuth.login({
-        email: email.value,
-        password: password.value
-      })
-
-      router.push("/")
+      emit('success')
     } else {
       console.error("Registration failed:", response)
     }

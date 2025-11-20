@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class PurchaseCoinsRequest extends FormRequest
+class PurchaseRequest extends FormRequest
 {
     public function authorize()
     {
