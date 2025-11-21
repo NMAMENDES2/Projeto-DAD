@@ -18,7 +18,7 @@ use App\Http\Controllers\GameHistoryController;
 // ROTAS PÚBLICAS
 // =====================================
 
-// Autenticação
+// Autenticação pública
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 
@@ -38,9 +38,7 @@ Route::get('/photos/{filename}', [UserController::class, 'showPhoto']);
 // =====================================
 Route::middleware('auth:sanctum')->group(function () {
 
-    // ###############################
-    // AUTH
-    // ###############################
+    // Autenticação
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/auth/refreshtoken', [AuthController::class, 'refreshToken']);
 

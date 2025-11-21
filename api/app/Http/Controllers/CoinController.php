@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\PurchaseCoinsRequest;
+use App\Http\Requests\PurchaseRequest;
 use App\Models\CoinTransaction;
 use App\Models\CoinTransactionType;
 use App\Models\CoinPurchase;
@@ -22,7 +23,7 @@ class CoinController extends Controller
     }
 
     // POST /api/coins/purchase
-    public function purchaseCoins(PurchaseCoinsRequest $request)
+    public function purchaseCoins(PurchaseRequest $request)
     {
         $user = $request->user();
         $validated = $request->validated();

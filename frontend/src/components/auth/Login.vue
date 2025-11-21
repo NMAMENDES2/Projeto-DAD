@@ -3,6 +3,12 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useErrorStore } from '@/stores/error'
 import { useAuthStore } from '@/stores/auth'
+/* import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label' */
+import ErrorMessage from '@/components/common/ErrorMessage.vue';
+
+import logoUrl from '@/assets/kirkification.png'
 
 const router = useRouter()
 const storeAuth = useAuthStore()
@@ -12,21 +18,17 @@ const email = ref('')
 const password = ref('')
 const responseData = ref('')
 
-const emit = defineEmits(['success'])
-
 const submit = async () => {
-  console.log('Submitting login form...')
-  const user = await storeAuth.login({
-    email: email.value,
-    password: password.value,
-  })
 
-  if (user) {
-    console.log('Login successful, emitting success event')
-    emit('success')
-  } else {
-    console.log('Login failed in component')
-  }
+    const user = await storeAuth.login({
+        email: email.value,
+        password: password.value
+    })
+    responseData.value = user.name
+    console.log(user)
+    if(responseData.value){
+        router.push("/")
+    }
 }
 
 </script>
@@ -35,6 +37,7 @@ const submit = async () => {
     <div class="w-full max-w-sm mx-auto overflow-hidden bg-white rounded-lg shadow-md dark:bg-gray-800">
         <div class="px-6 py-4">
             <div class="flex justify-center mx-auto">
+                <img class="w-auto h-12" :src="logoUrl" alt="">
             </div>
 
             <h3 class="mt-3 text-xl font-medium text-center text-gray-600 dark:text-gray-200">Welcome Back</h3>
@@ -48,6 +51,7 @@ const submit = async () => {
                         class="block w-full px-4 py-2 mt-2 text-gray-700 placeholder-gray-500 bg-white border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 focus:border-blue-400 dark:focus:border-blue-300 focus:ring-opacity-40 focus:outline-none focus:ring focus:ring-blue-300"
                         id="email" type="email" placeholder="Email Address" aria-label="Email Address"
                         v-model="email" />
+                    <ErrorMessage :errorMessage="storeError.fieldMessage('email')"></ErrorMessage>
                 </div>
 
 
@@ -57,6 +61,7 @@ const submit = async () => {
                     <input
                         class="block w-full px-4 py-2 mt-2 text-gray-700 placeholder-gray-500 bg-white border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 focus:border-blue-400 dark:focus:border-blue-300 focus:ring-opacity-40 focus:outline-none focus:ring focus:ring-blue-300"
                         id="password" type="password" placeholder="Password" aria-label="Password" v-model="password" />
+                    <ErrorMessage :errorMessage="storeError.fieldMessage('password')"></ErrorMessage>
                 </div>
 
                 <div class="flex items-center justify-between mt-4">

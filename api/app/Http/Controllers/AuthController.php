@@ -9,33 +9,28 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
     /**
      * REGISTO (G1)
      */
-    public function register(RegisterRequest $request)
-    {
-        $validated = $request->validated();
-
+    public function register(RegisterRequest $request){
         $user = User::create([
-            'name'                  => $validated['name'],
-            'email'                 => $validated['email'],
-            'nickname'              => $validated['nickname'],
-            'password'              => Hash::make($validated['password']),
+            'name'                  => $request['name'],
+            'email'                 => $request['email'],
+            'nickname'              => $request['nickname'],
+            'password'              => Hash::make($request['password']),
             'type'                  => 'P',
             'blocked'               => false,
             'photo_avatar_filename' => null,
-            'coins_balance'         => 0,
+            'coins_balance'         => 10,
             'custom'                => null,
         ]);
 
-        $token = $user->createToken('auth-token')->plainTextToken;
-
         return response()->json([
-            'message' => 'ok',
-            'token'   => $token,
+            'message' => 'User registered successfully.',
             'user'    => new UserResource($user)
         ], 201);
     }
@@ -43,48 +38,25 @@ class AuthController extends Controller
     /**
      * LOGIN (G1)
      */
-    public function login(LoginRequest $request)
+      public function login(LoginRequest $request)
     {
+        $this->purgeExpiredTokens();
         $credentials = $request->validated();
-
         if (!Auth::attempt($credentials)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid email or password.'
-            ], 422);
+            return response()->json(['message' => 'Unauthorized'], 401);
         }
-
-        $user = Auth::user();
-
-        // Se estiver bloqueado → impedir login
-        if ($user->blocked) {
-            Auth::logout();
-            return response()->json([
-                'success' => false,
-                'message' => 'Your account is blocked.'
-            ], 403);
-        }
-
-        $token = $user->createToken('auth-token')->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Login successful.',
-            'token'   => $token,
-            'user'    => new UserResource($user)
-        ], 200);
+        $token = $request->user()->createToken('authToken', ['*'], now()->addHours(2))->plainTextToken;
+        return response()->json(['token' => $token]);
     }
 
     /**
      * LOGOUT (G1)
      */
-    public function logout(Request $request)
+     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
-
-        return response()->json([
-            'message' => 'Logged out successfully.'
-        ]);
+        $this->purgeExpiredTokens();
+        $this->revokeCurrentToken($request->user());
+        return response()->json(null, 204);
     }
 
     /**
@@ -95,4 +67,27 @@ class AuthController extends Controller
     {
         return new UserResource($request->user());
     }
+
+    public function refreshToken(Request $request)
+    {
+        // Revokes current token and creates a new token
+        $this->purgeExpiredTokens();
+        $this->revokeCurrentToken($request->user());
+        $token = $request->user()->createToken('authToken', ['*'], now()->addHours(2))->plainTextToken;
+        return response()->json(['token' => $token]);
+    }
+
+      private function purgeExpiredTokens()
+    {
+        // Only deletes if token expired 2 hours ago
+        $dateTimetoPurge = now()->subHours(2);
+        DB::table('personal_access_tokens')->where('expires_at', '<', $dateTimetoPurge)->delete();
+    }
+
+     private function revokeCurrentToken(User $user)
+    {
+        $currentTokenId = $user->currentAccessToken()->id;
+        $user->tokens()->where('id', $currentTokenId)->delete();
+    }
+
 }
