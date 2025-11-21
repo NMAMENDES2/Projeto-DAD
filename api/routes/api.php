@@ -1,17 +1,18 @@
 <?php
 
+use App\Http\Requests\PurchaseRequest;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
 // Controllers existentes
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\CoinController;
 
 // Controllers do jogo (a criar)
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\TransactionController;
-use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\GameHistoryController;
 
 // =====================================
@@ -85,8 +86,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // ###############################
     // TRANSAÇÕES / COINS
     // ###############################
-    // Route::get('/user-transactions', [TransactionController::class, 'getMyTransactions']);
-    // Route::post('/purchase-coins', [PurchaseController::class, 'purchaseCoins']);
+    Route::get('coins/balance', [CoinController::class, 'getBalance']);
+    Route::post('coins/purchase', [CoinController::class, 'purchaseCoins']);
+    Route::get('coins/transactions', [CoinController::class, 'getTransactions']);
 
     // ADMIN – gestão de utilizadores
     Route::get('/users', [UserController::class, 'index']);
@@ -94,4 +96,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/users/{user}', [UserController::class, 'update']);
     Route::delete('/users/{user}', [UserController::class, 'destroy']);
     Route::post('/users/{id}/block', [UserController::class, 'toggleBlock']);
+
+    // ADMIN – gestão de transações
+    Route::get('admin/coins/transactions', [CoinController::class, 'getAllTransactions']);
+    Route::get('admin/users/{id}/transactions', [CoinController::class, 'getUserTransactions']);
 });
+

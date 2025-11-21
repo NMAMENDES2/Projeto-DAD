@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Http\Controllers\api\PurchaseController;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Notifications\Notifiable;
@@ -52,4 +53,16 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function coinTransactions()
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
+    public function coinPurchases()
+    {
+        return $this->hasMany(PurchaseController::class);
+    }
+
+
 }
