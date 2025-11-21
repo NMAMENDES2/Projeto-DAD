@@ -56,13 +56,14 @@ class User extends Authenticatable
 
     public function coinTransactions()
     {
-        return $this->hasMany(Transaction::class);
+        return $this->hasMany(CoinTransaction::class);
     }
 
     public function coinPurchases()
     {
-        return $this->hasMany(PurchaseController::class);
+        return $this->hasMany(CoinPurchase::class);
     }
+
 
 
 }

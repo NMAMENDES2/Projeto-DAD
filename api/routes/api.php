@@ -98,7 +98,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/users/{id}/block', [UserController::class, 'toggleBlock']);
 
     // ADMIN – gestão de transações
-    Route::get('admin/coins/transactions', [CoinController::class, 'getAllTransactions']);
+     Route::get('admin/coins/transactions', [CoinController::class, 'getAllTransactions']);
     Route::get('admin/users/{id}/transactions', [CoinController::class, 'getUserTransactions']);
 });
 
