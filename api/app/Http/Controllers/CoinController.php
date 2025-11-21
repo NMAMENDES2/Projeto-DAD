@@ -1,5 +1,5 @@
 <?php
-    
+
 namespace App\Http\Controllers;
 
 use App\Http\Requests\PurchaseCoinsRequest;
@@ -51,7 +51,7 @@ class CoinController extends Controller
         }
 
         // Criar transação
-        DB::beginTransaction();                           
+        DB::beginTransaction();
         try {
             $transactionType = CoinTransactionType::where('name', 'Coin purchase')->first();
 
@@ -101,7 +101,7 @@ class CoinController extends Controller
     // GET /api/admin/coins/transactions (admin - todos)
     public function getAllTransactions(Request $request)
     {
-        if ($request->user()->type !== 'Admin') {
+        if ($request->user()->type !== 'A') {
             return response()->json(['message' => 'Não autorizado'], 403);
         }
 
@@ -112,7 +112,7 @@ class CoinController extends Controller
         return response()->json(['transactions' => $transactions]);
     }
 
-    // GET /api/admin/users/{UserId}/transactions
+    // GET /api/admin/users/{id}/transactions
     public function getUserTransactions(Request $request, $userId)
     {
         if ($request->user()->type !== 'A') {
