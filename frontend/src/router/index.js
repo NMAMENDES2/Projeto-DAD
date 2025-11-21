@@ -28,9 +28,21 @@ const router = createRouter({
     path: '/transactions',
     name: 'Transactions',
     component: Transactions,
-    
+    meta: { requiresAuth: true }
   }
   ],
+})
+
+// requiresAuth, não podem comprar se nao estiverem autenticados
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('token')
+  
+  // Se não estivrem
+  if (to.meta.requiresAuth && !token) {
+    next('/login')
+  } else {
+    next()
+  }
 })
 
 export default router
