@@ -28,7 +28,7 @@ const router = createRouter({
     path: '/transactions',
     name: 'Transactions',
     component: Transactions,
-    meta: { requiresAuth: true }
+    
   }
   ],
 })
