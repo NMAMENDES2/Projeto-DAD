@@ -3,9 +3,6 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useErrorStore } from '@/stores/error'
 import { useAuthStore } from '@/stores/auth'
-/* import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label' */
 import ErrorMessage from '@/components/common/ErrorMessage.vue';
 
 import logoUrl from '@/assets/kirkification.png'
@@ -14,23 +11,37 @@ const router = useRouter()
 const storeAuth = useAuthStore()
 const storeError = useErrorStore()
 
+const emit = defineEmits(['success'])
+
 const email = ref('')
 const password = ref('')
 const responseData = ref('')
 
 const submit = async () => {
-
+    console.log('Submitting login form...')
+    
     const user = await storeAuth.login({
         email: email.value,
         password: password.value
     })
-    responseData.value = user.name
-    console.log(user)
-    if(responseData.value){
-        router.push("/")
+    
+    console.log("Login result:", user)
+    
+    if (user && user.name) {
+        responseData.value = user.name
+        console.log('Login successful! User name:', responseData.value)
+        
+        // Emit success event to parent
+        emit('success')
+        
+        // Small delay to ensure auth state is updated
+        setTimeout(() => {
+            router.push("/")
+        }, 100)
+    } else {
+        console.log('Login failed')
     }
 }
-
 </script>
 
 <template>
@@ -44,7 +55,7 @@ const submit = async () => {
 
             <p class="mt-1 text-center text-gray-500 dark:text-gray-400">Login or create account</p>
 
-            <form>
+            <form @submit.prevent="submit">
 
                 <div class="w-full mt-4">
                     <input
@@ -54,9 +65,6 @@ const submit = async () => {
                     <ErrorMessage :errorMessage="storeError.fieldMessage('email')"></ErrorMessage>
                 </div>
 
-
-
-
                 <div class="w-full mt-4">
                     <input
                         class="block w-full px-4 py-2 mt-2 text-gray-700 placeholder-gray-500 bg-white border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 focus:border-blue-400 dark:focus:border-blue-300 focus:ring-opacity-40 focus:outline-none focus:ring focus:ring-blue-300"
@@ -65,12 +73,9 @@ const submit = async () => {
                 </div>
 
                 <div class="flex items-center justify-between mt-4">
-                    <!-- <a href="#" class="text-sm text-gray-600 dark:text-gray-200 hover:text-gray-500">Forget
-                        Password?</a> -->
-
                     <button
-                        class="px-6 py-2 text-sm font-medium tracking-wide text-white capitalize transition-colors duration-300 transform bg-blue-500 rounded-lg hover:bg-blue-400 focus:outline-none focus:ring focus:ring-blue-300 focus:ring-opacity-50"
-                        @click.prevent="submit">
+                        type="submit"
+                        class="px-6 py-2 text-sm font-medium tracking-wide text-white capitalize transition-colors duration-300 transform bg-blue-500 rounded-lg hover:bg-blue-400 focus:outline-none focus:ring focus:ring-blue-300 focus:ring-opacity-50">
                         Sign In
                     </button>
                 </div>

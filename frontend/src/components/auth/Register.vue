@@ -11,41 +11,46 @@ const router = useRouter()
 const storeAuth = useAuthStore()
 const storeError = useErrorStore()
 
+const emit = defineEmits(['success'])
 
+const name = ref('')
 const nickname = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const responseData = ref('')
 
-
-//TODO: work on profile picture change and passwords
-
 const register = async () => {
   try {
     if (password.value !== confirmPassword.value) {
-      storeError.setMessage('register', 'Passwords do not match.')
+      storeError.setErrorMessages('Passwords do not match.', { password: ['Passwords do not match.'] }, 422, 'Registration Error!')
       return
     }
 
     const response = await storeAuth.register({
+      name: name.value,
       nickname: nickname.value,
       email: email.value,
       password: password.value,
     })
 
-    console.log(response)
+    console.log("Register response:", response)
 
-    if (response?.message === 'User registered successfully.' && response?.user) {
-      responseData.value = 'Registration successful! Redirecting...'
-      setTimeout(() => router.push('/'), 2000)
+    if (response && response.message === 'User registered successfully.') {
+      responseData.value = 'Registration successful! Logging you in...'
+      
+      // Auto-login after successful registration
+      setTimeout(async () => {
+        await storeAuth.login({
+          email: email.value,
+          password: password.value
+        })
+        emit('success')
+        router.push('/')
+      }, 1000)
     }
   } catch (error) {
     console.error('Registration failed:', error)
-    storeError.setMessage(
-      'register',
-      error.response?.data.message || 'An error occurred during registration.'
-    )
   }
 }
 </script>
@@ -54,12 +59,19 @@ const register = async () => {
     <div class="w-full max-w-sm mx-auto overflow-hidden bg-white rounded-lg shadow-md dark:bg-gray-800">
         <div class="px-6 py-4">
             <div class="flex justify-center mx-auto">
-                <img class="w-auto h-12" :src="logoUrl" alt="Memory Game Logo" />
+                <img class="w-auto h-12" :src="logoUrl" alt="Kirkification Logo" />
             </div>
 
             <h3 class="text-xl font-medium text-center text-gray-600 dark:text-gray-200">Create an Account</h3>
 
             <form @submit.prevent="register">
+                <div class="mt-4">
+                    <input
+                        class="block w-full px-4 py-2 text-gray-700 placeholder-gray-500 bg-white border rounded-lg dark:bg-gray-800 dark:border-gray-600 focus:border-blue-400 focus:ring focus:ring-blue-300 focus:ring-opacity-40 focus:outline-none"
+                        id="name" type="text" placeholder="Full Name" v-model="name" required />
+                    <ErrorMessage :errorMessage="storeError.fieldMessage('name')" />
+                </div>
+
                 <div class="mt-4">
                     <input
                         class="block w-full px-4 py-2 text-gray-700 placeholder-gray-500 bg-white border rounded-lg dark:bg-gray-800 dark:border-gray-600 focus:border-blue-400 focus:ring focus:ring-blue-300 focus:ring-opacity-40 focus:outline-none"
@@ -91,7 +103,7 @@ const register = async () => {
                 <div class="mt-4">
                     <button
                         class="w-full px-4 py-2 text-white bg-blue-500 rounded-lg hover:bg-blue-400 focus:outline-none focus:ring focus:ring-blue-300 focus:ring-opacity-50"
-                        type="submit" @click.prevent="register">
+                        type="submit">
                         Register
                     </button>
                 </div>
@@ -104,7 +116,7 @@ const register = async () => {
 
         <div class="flex items-center justify-center py-4 text-center bg-gray-50 dark:bg-gray-700">
             <span class="text-sm text-gray-600 dark:text-gray-200">Already have an account? </span>
-            <a href="/login" class="mx-2 text-sm font-bold text-blue-500 dark:text-blue-400 hover:underline">Sign In</a>
+            <RouterLink to="/login" class="mx-2 text-sm font-bold text-blue-500 dark:text-blue-400 hover:underline">Sign In</RouterLink>
         </div>
     </div>
 </template>

@@ -75,7 +75,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import PurchaseModal from '@/components/PurchaseModal.vue'
+import PurchaseModal from '@/components/transaction/PurchaseModal.vue'
 
 const router = useRouter()
 const balance = ref(0)

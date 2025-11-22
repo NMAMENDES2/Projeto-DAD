@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -38,15 +39,21 @@ class AuthController extends Controller
     /**
      * LOGIN (G1)
      */
-      public function login(LoginRequest $request)
+     public function login(LoginRequest $request)
     {
-        $this->purgeExpiredTokens();
-        $credentials = $request->validated();
-        if (!Auth::attempt($credentials)) {
-            return response()->json(['message' => 'Unauthorized'], 401);
+        if (! Auth::attempt($request->only('email', 'password'))) {
+            throw ValidationException::withMessages([
+                'email' => ['The provided credentials are incorrect.'],
+            ]);
         }
-        $token = $request->user()->createToken('authToken', ['*'], now()->addHours(2))->plainTextToken;
-        return response()->json(['token' => $token]);
+
+        $user = Auth::user();
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        return response()->json([
+            'user' => $user,
+            'token' => $token,
+        ]);
     }
 
     /**

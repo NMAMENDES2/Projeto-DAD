@@ -188,6 +188,10 @@ const warning = ref("")
 const showAuthModal = ref(false)
 const authMode = ref('login') // 'login' or 'register'
 
+onMounted(async () => {
+  await authStore.restoreToken()
+})
+
 // Check if game is currently active
 const isGameActive = computed(() => {
   return game.player1.length > 0 || game.player2.length > 0 || game.remainingDeck.length > 0
