@@ -1,62 +1,81 @@
 <template>
-  <div class="transactions-page">
+  <div class="max-w-7xl mx-auto p-6">
     <!-- Header com saldo -->
-    <div class="balance-section">
-      <h1>As Minhas Transações</h1>
-      <div class="balance-card">
-        <div class="balance-info">
-          <span class="balance-label">Saldo Atual</span>
-          <span class="balance-amount">{{ balance }} 🪙</span>
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold mb-6 text-gray-900">My Transactions</h1>
+      <div class="bg-linear-to-br from-purple-600 to-purple-800 rounded-2xl p-8 text-white shadow-xl">
+        <div class="flex justify-between items-center">
+          <div class="flex flex-col">
+            <span class="text-sm opacity-90 mb-2">Current Balance</span>
+            <span class="text-5xl font-bold">{{ authStore.userBrainCoins }} 🪙</span>
+          </div>
+          <Button 
+            @click="showPurchaseModal = true" 
+            variant="secondary"
+            size="lg"
+            class="bg-white text-purple-700 hover:bg-gray-100 font-semibold"
+          >
+            Purchase Coins
+          </Button>
         </div>
-        <button @click="showPurchaseModal = true" class="btn-primary">
-          Comprar Moedas
-        </button>
       </div>
     </div>
 
     <!-- Histórico de transações -->
-    <div class="transactions-section">
-      <h2>Histórico</h2>
-      
+    <div class="bg-white rounded-xl shadow-sm">
+      <div class="p-6 border-b">
+        <h2 class="text-2xl font-semibold text-gray-900">History</h2>
+      </div>
+
       <!-- Loading -->
-      <div v-if="loading" class="loading">
-        A carregar transações...
+      <div v-if="transactionStore.loading" class="text-center py-12 text-gray-500">
+        Loading transactions...
       </div>
 
       <!-- Lista vazia -->
-      <div v-else-if="transactions.length === 0" class="empty-state">
-        <p>Ainda não tens transações.</p>
+      <div v-else-if="transactionStore.transactions.length === 0" class="text-center py-12 text-gray-500">
+        <p>You don't have any transactions yet.</p>
       </div>
 
       <!-- Tabela de transações -->
-      <div v-else class="transactions-table">
-        <table>
-          <thead>
+      <div v-else class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50">
             <tr>
-              <th>Data</th>
-              <th>Tipo</th>
-              <th>Descrição</th>
-              <th>Moedas</th>
-              <th>Saldo</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600 border-b-2">Date</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600 border-b-2">Type</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600 border-b-2">Description</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600 border-b-2">Coins</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600 border-b-2">Balance</th>
             </tr>
           </thead>
           <tbody>
             <tr 
-              v-for="transaction in transactions" 
+              v-for="transaction in transactionStore.transactions" 
               :key="transaction.id"
-              :class="transaction.coins > 0 ? 'positive' : 'negative'"
+              :class="[
+                'border-b',
+                transaction.coins > 0 ? 'bg-green-50' : 'bg-red-50'
+              ]"
             >
-              <td>{{ formatDate(transaction.transaction_datetime) }}</td>
-              <td>
-                <span class="badge" :class="getTypeClass(transaction.coin_transaction_type)">
+              <td class="px-6 py-4">{{ formatDate(transaction.transaction_datetime) }}</td>
+              <td class="px-6 py-4">
+                <span 
+                  :class="[
+                    'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium',
+                    getTypeClass(transaction.coin_transaction_type)
+                  ]"
+                >
                   {{ transaction.coin_transaction_type?.name || transaction.type }}
                 </span>
               </td>
-              <td>{{ getTransactionDescription(transaction) }}</td>
-              <td class="coins-cell">
-                {{ transaction.coins > 0 ? '+' : '' }}{{ transaction.coins }} 🪙
+              <td class="px-6 py-4 text-gray-700">{{ getTransactionDescription(transaction) }}</td>
+              <td class="px-6 py-4 font-semibold text-lg">
+                <span :class="transaction.coins > 0 ? 'text-green-600' : 'text-red-600'">
+                  {{ transaction.coins > 0 ? '+' : '' }}{{ transaction.coins }} 🪙
+                </span>
               </td>
-              <td>{{ transaction.brain_coins || '-' }}</td>
+              <td class="px-6 py-4 text-gray-700">{{ transaction.brain_coins || '-' }}</td>
             </tr>
           </tbody>
         </table>
@@ -65,7 +84,7 @@
 
     <!-- Modal de compra -->
     <PurchaseModal 
-      v-if="showPurchaseModal" 
+      :show="showPurchaseModal" 
       @close="showPurchaseModal = false"
       @purchase-success="handlePurchaseSuccess"
     />
@@ -74,62 +93,19 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { useTransactionStore } from '@/stores/transaction'
+import { Button } from '@/components/ui/button'
 import PurchaseModal from '@/components/transaction/PurchaseModal.vue'
 
-const router = useRouter()
-const balance = ref(0)
-const transactions = ref([])
-const loading = ref(false)
+const authStore = useAuthStore()
+const transactionStore = useTransactionStore()
 const showPurchaseModal = ref(false)
-
-// Carregar saldo
-const fetchBalance = async () => {
-  try {
-    const token = localStorage.getItem('token')
-    const response = await fetch('http://localhost:8000/api/coins/balance', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    })
-    
-    if (response.ok) {
-      const data = await response.json()
-      balance.value = data.balance
-    }
-  } catch (error) {
-    console.error('Erro ao carregar saldo:', error)
-  }
-}
-
-// Carregar transações
-const fetchTransactions = async () => {
-  loading.value = true
-  try {
-    const token = localStorage.getItem('token')
-    const response = await fetch('http://localhost:8000/api/coins/transactions', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    })
-    
-    if (response.ok) {
-      const data = await response.json()
-      transactions.value = data.transactions
-    }
-  } catch (error) {
-    console.error('Erro ao carregar transações:', error)
-  } finally {
-    loading.value = false
-  }
-}
 
 // Formatar data
 const formatDate = (datetime) => {
   const date = new Date(datetime)
-  return date.toLocaleString('pt-PT', {
+  return date.toLocaleString('en-US', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -141,11 +117,19 @@ const formatDate = (datetime) => {
 // Classe CSS para tipo de transação
 const getTypeClass = (type) => {
   const name = type?.name?.toLowerCase() || ''
-  if (name.includes('purchase') || name.includes('compra')) return 'badge-success'
-  if (name.includes('bonus')) return 'badge-info'
-  if (name.includes('fee') || name.includes('taxa')) return 'badge-warning'
-  if (name.includes('win') || name.includes('vitória')) return 'badge-success'
-  return 'badge-default'
+  if (name.includes('purchase') || name.includes('compra')) {
+    return 'bg-green-100 text-green-800'
+  }
+  if (name.includes('bonus')) {
+    return 'bg-blue-100 text-blue-800'
+  }
+  if (name.includes('fee') || name.includes('taxa')) {
+    return 'bg-yellow-100 text-yellow-800'
+  }
+  if (name.includes('win') || name.includes('vitória')) {
+    return 'bg-green-100 text-green-800'
+  }
+  return 'bg-gray-100 text-gray-800'
 }
 
 // Descrição da transação
@@ -153,163 +137,28 @@ const getTransactionDescription = (transaction) => {
   const type = transaction.coin_transaction_type?.name || transaction.type
   
   if (type.includes('purchase') || type.includes('Coin purchase')) {
-    return `Compra de ${transaction.coins} moedas`
+    return `Purchase of ${transaction.coins} coins`
   }
   if (type.includes('Game fee')) {
-    return `Taxa de entrada no jogo #${transaction.game_id}`
+    return `Game entry fee #${transaction.game_id}`
   }
   if (type.includes('Game win')) {
-    return `Vitória no jogo #${transaction.game_id}`
+    return `Win in game #${transaction.game_id}`
   }
   if (type.includes('Bonus')) {
-    return 'Bónus de registo'
+    return 'Registration bonus'
   }
   return type
 }
 
 // Após compra bem sucedida
-const handlePurchaseSuccess = () => {
+const handlePurchaseSuccess = async () => {
   showPurchaseModal.value = false
-  fetchBalance()
-  fetchTransactions()
+  await authStore.restoreToken() // Refresh user balance
+  await transactionStore.fetchTransactions() // Refresh transaction list
 }
 
-onMounted(() => {
-  fetchBalance()
-  fetchTransactions()
+onMounted(async () => {
+  await transactionStore.fetchTransactions()
 })
 </script>
-
-<style scoped>
-.transactions-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-}
-
-.balance-section {
-  margin-bottom: 3rem;
-}
-
-.balance-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
-  padding: 2rem;
-  color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-}
-
-.balance-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.balance-label {
-  font-size: 0.9rem;
-  opacity: 0.9;
-  margin-bottom: 0.5rem;
-}
-
-.balance-amount {
-  font-size: 2.5rem;
-  font-weight: bold;
-}
-
-.btn-primary {
-  background: white;
-  color: #667eea;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.btn-primary:hover {
-  transform: scale(1.05);
-}
-
-.transactions-section h2 {
-  margin-bottom: 1.5rem;
-  color: #2d3748;
-}
-
-.transactions-table {
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-thead {
-  background: #f7fafc;
-}
-
-th {
-  padding: 1rem;
-  text-align: left;
-  font-weight: 600;
-  color: #4a5568;
-  border-bottom: 2px solid #e2e8f0;
-}
-
-td {
-  padding: 1rem;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-tr.positive td {
-  background: #f0fff4;
-}
-
-tr.negative td {
-  background: #fff5f5;
-}
-
-.coins-cell {
-  font-weight: 600;
-  font-size: 1.1rem;
-}
-
-.badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-.badge-success {
-  background: #c6f6d5;
-  color: #22543d;
-}
-
-.badge-warning {
-  background: #feebc8;
-  color: #744210;
-}
-
-.badge-info {
-  background: #bee3f8;
-  color: #2c5282;
-}
-
-.badge-default {
-  background: #e2e8f0;
-  color: #4a5568;
-}
-
-.loading, .empty-state {
-  text-align: center;
-  padding: 3rem;
-  color: #718096;
-}
-</style>

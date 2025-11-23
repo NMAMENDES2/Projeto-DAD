@@ -1,275 +1,179 @@
-<template>
-  <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Comprar Brain Coins</h2>
-        <button @click="$emit('close')" class="close-btn">&times;</button>
-      </div>
-
-      <div class="modal-body">
-        <p class="info-text">1€ = 10 🪙 Brain Coins</p>
-
-        <form @submit.prevent="handleSubmit">
-          <!-- Valor em euros -->
-          <div class="form-group">
-            <label>Valor (€)</label>
-            <input 
-              v-model.number="form.euros" 
-              type="number" 
-              min="1" 
-              max="99" 
-              required
-              placeholder="Insira o valor entre 1€ e 99€"
-            />
-            <span class="coins-preview">
-              = {{ form.euros * 10 }} Brain Coins 🪙
-            </span>
-          </div>
-
-          <!-- Tipo de pagamento -->
-          <div class="form-group">
-            <label>Método de Pagamento</label>
-            <select v-model="form.payment_type" required>
-              <option value="">Selecione...</option>
-              <option value="MBWAY">MB WAY</option>
-              <option value="PAYPAL">PayPal</option>
-              <option value="IBAN">IBAN</option>
-              <option value="MB">Multibanco</option>
-              <option value="VISA">VISA</option>
-            </select>
-          </div>
-
-          <!-- Referência de pagamento -->
-          <div class="form-group">
-            <label>Referência</label>
-            <input 
-              v-model="form.payment_reference" 
-              type="text" 
-              required
-              :placeholder="getPlaceholder()"
-            />
-            <small class="helper-text">{{ getHelperText() }}</small>
-          </div>
-
-          <!-- Erros -->
-          <div v-if="error" class="error-message">
-            {{ error }}
-          </div>
-
-          <!-- Botões -->
-          <div class="modal-actions">
-            <button type="button" @click="$emit('close')" class="btn-secondary">
-              Cancelar
-            </button>
-            <button type="submit" :disabled="loading" class="btn-primary">
-              {{ loading ? 'A processar...' : 'Comprar' }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, computed } from 'vue'
+import { useTransactionStore } from '@/stores/transaction'
+import { useAuthStore } from '@/stores/auth'
+import { Button } from '@/components/ui/button'
+import { X } from 'lucide-react'
+
+const props = defineProps({
+  show: {
+    type: Boolean,
+    required: true
+  }
+})
 
 const emit = defineEmits(['close', 'purchase-success'])
 
-const form = reactive({
-  euros: 5,
-  payment_type: '',
-  payment_reference: ''
+const transactionStore = useTransactionStore()
+const authStore = useAuthStore()
+
+const form = ref({
+  euros: '',
+  type: 'MBWAY',
+  reference: ''
 })
 
-const loading = ref(false)
 const error = ref('')
 
-const getPlaceholder = () => {
-  const placeholders = {
-    MBWAY: '912345678',
-    PAYPAL: 'email@example.com',
-    IBAN: 'PT50000000000000000000000',
-    MB: '12345-123456789',
-    VISA: '4111111111111111'
-  }
-  return placeholders[form.payment_type] || 'Insira a referência'
-}
+const coinsAmount = computed(() => {
+  const euros = parseFloat(form.value.euros) || 0
+  return Math.floor(euros * 10)
+})
 
-const getHelperText = () => {
-  const helpers = {
-    MBWAY: 'Número de telefone (9 dígitos)',
-    PAYPAL: 'Email da conta PayPal',
-    IBAN: 'IBAN com 25 caracteres',
-    MB: 'Entidade-Referência',
-    VISA: 'Número do cartão VISA (16 dígitos)'
+const closeModal = () => {
+  form.value = {
+    euros: '',
+    type: 'MBWAY',
+    reference: ''
   }
-  return helpers[form.payment_type] || ''
+  error.value = ''
+  emit('close')
 }
 
 const handleSubmit = async () => {
-  loading.value = true
   error.value = ''
 
+  console.log('Button clicked!') // Debug
+  console.log('Form data:', form.value)
+
+  if (!form.value.euros || parseFloat(form.value.euros) <= 0) {
+    error.value = 'Please enter a valid amount'
+    return
+  }
+
+  if (!form.value.reference || form.value.reference.trim() === '') {
+    error.value = 'Please enter a payment reference'
+    return
+  }
+
   try {
-    const token = localStorage.getItem('token')
-    const response = await fetch('http://localhost:8000/api/coins/purchase', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(form)
+    const data = await transactionStore.purchaseCoins({
+      value: parseInt(form.value.euros),
+      type: form.value.type,
+      reference: form.value.reference
     })
 
-    const data = await response.json()
+    console.log(data)
 
-    if (response.ok) {
-      emit('purchase-success', data)
-    } else {
-      error.value = data.message || 'Erro ao processar compra'
-    }
+    emit('purchase-success', data)
+    closeModal()
   } catch (err) {
-    error.value = 'Erro de conexão com o servidor'
-  } finally {
-    loading.value = false
+    error.value = err.response?.data?.message || 'Error processing purchase'
   }
 }
 </script>
 
-<style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
+<template>
+  <div v-if="show" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50" @click.self="closeModal">
+    <div class="bg-white rounded-2xl w-[90%] max-w-[500px] shadow-2xl" @click.stop>
+      <!-- Header -->
+      <div class="flex justify-between items-center p-6 border-b">
+        <h2 class="text-2xl font-semibold text-gray-900">Purchase Brain Coins</h2>
+        <button 
+          @click="closeModal" 
+          class="text-gray-400 hover:text-gray-600 transition-colors"
+          type="button"
+        >
+          <X :size="28" />
+        </button>
+      </div>
 
-.modal-content {
-  background: white;
-  border-radius: 16px;
-  width: 90%;
-  max-width: 500px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-}
+      <!-- Body -->
+      <div class="p-6 space-y-6">
+        <!-- Info Banner -->
+        <div class="bg-gray-100 rounded-lg p-3 text-center">
+          <p class="font-semibold text-gray-900">1 Euro = 10 Brain Coins</p>
+        </div>
 
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
-}
+        <!-- Error Message -->
+        <div v-if="error" class="bg-red-50 text-red-600 rounded-lg p-3">
+          {{ error }}
+        </div>
 
-.modal-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
-}
+        <!-- Form Fields -->
+        <div class="space-y-4">
+          <!-- Amount Input -->
+          <div class="space-y-2">
+            <label for="euros" class="block text-base font-semibold text-gray-900">
+              Amount (Euros)
+            </label>
+            <input
+              id="euros"
+              v-model="form.euros"
+              type="number"
+              placeholder="10.00"
+              class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-base focus:outline-none focus:border-purple-500 transition-colors"
+            />
+            <span v-if="form.euros" class="block text-sm font-semibold text-purple-600">
+              = {{ coinsAmount }} Brain Coins
+            </span>
+          </div>
 
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 2rem;
-  cursor: pointer;
-  color: #718096;
-  line-height: 1;
-}
+          <!-- Payment Type Select -->
+          <div class="space-y-2">
+            <label for="type" class="block text-base font-semibold text-gray-900">
+              Payment Method
+            </label>
+            <select
+              id="type"
+              v-model="form.type"
+              class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-base focus:outline-none focus:border-purple-500 transition-colors"
+            >
+              <option value="MBWAY">MB WAY</option>
+              <option value="PAYPAL">PayPal</option>
+              <option value="IBAN">IBAN</option>
+              <option value="MB">Multibanco</option>
+              <option value="VISA">Visa</option>
+            </select>
+          </div>
 
-.modal-body {
-  padding: 1.5rem;
-}
+          <!-- Reference Input -->
+          <div class="space-y-2">
+            <label for="reference" class="block text-base font-semibold text-gray-900">
+              Payment Reference
+            </label>
+            <input
+              id="reference"
+              v-model="form.reference"
+              type="text"
+              placeholder="Enter your payment reference"
+              class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-base focus:outline-none focus:border-purple-500 transition-colors"
+            />
+            <span class="block text-sm text-gray-500">
+              This will be used to confirm your payment
+            </span>
+          </div>
+        </div>
 
-.info-text {
-  background: #edf2f7;
-  padding: 0.75rem;
-  border-radius: 8px;
-  text-align: center;
-  margin-bottom: 1.5rem;
-  font-weight: 600;
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: #2d3748;
-}
-
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 1rem;
-}
-
-.form-group input:focus,
-.form-group select:focus {
-  outline: none;
-  border-color: #667eea;
-}
-
-.coins-preview {
-  display: block;
-  margin-top: 0.5rem;
-  color: #667eea;
-  font-weight: 600;
-}
-
-.helper-text {
-  display: block;
-  margin-top: 0.25rem;
-  color: #718096;
-  font-size: 0.85rem;
-}
-
-.error-message {
-  background: #fff5f5;
-  color: #c53030;
-  padding: 0.75rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  margin-top: 1.5rem;
-}
-
-.btn-secondary, .btn-primary {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-secondary {
-  background: #e2e8f0;
-  color: #4a5568;
-}
-
-.btn-primary {
-  background: #667eea;
-  color: white;
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-</style>
+        <!-- Action Buttons -->
+        <div class="flex gap-3 justify-end pt-2">
+          <Button
+            variant="outline"
+            @click="closeModal"
+            :disabled="transactionStore.loading"
+            class="px-6 py-2"
+          >
+            Cancel
+          </Button>
+          <Button
+            @click="handleSubmit"
+            :disabled="transactionStore.loading"
+            class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white"
+          >
+            {{ transactionStore.loading ? 'Processing...' : 'Purchase Coins' }}
+          </Button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>

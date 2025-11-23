@@ -4,6 +4,7 @@ import Register from '@/components/auth/Register.vue'
 import Login from '@/components/auth/Login.vue'
 import Game from '@/components/game/Game.vue'
 import Transactions from '@/pages/Transactions.vue'
+import WebsocketsPage from '@/pages/WebsocketsPage.vue'
 
 
 const router = createRouter({
@@ -29,7 +30,16 @@ const router = createRouter({
     name: 'Transactions',
     component: Transactions,
     meta: { requiresAuth: true }
-  }
+  },
+  {
+      path: '/testing',
+      children: [
+        {
+          path: 'websockets',
+          component: WebsocketsPage,
+        },
+      ],
+    },
   ],
 })
 

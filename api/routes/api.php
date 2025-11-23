@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CoinPurchaseController;
 use App\Http\Requests\PurchaseRequest;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
@@ -8,12 +9,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CoinController;
-
-// Controllers do jogo (a criar)
-use App\Http\Controllers\GameController;
-use App\Http\Controllers\StatisticsController;
-use App\Http\Controllers\TransactionController;
-use App\Http\Controllers\GameHistoryController;
+use App\Http\Controllers\CoinTransactionController;
 
 // =====================================
 // ROTAS PÚBLICAS
@@ -47,46 +43,35 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
-    // ###############################
     // PERFIL
-    // ###############################
     Route::get('/users/me', [UserController::class, 'me']);
     Route::put('/users/me', [UserController::class, 'update']);
 
     Route::post('/users/me/photo', [UserController::class, 'uploadPhoto']);
     Route::post('/users/me/password', [UserController::class, 'updatePassword']);
 
-    // ###############################
     // SINGLEPLAYER (Bisca)
-    // ###############################
     // Route::post('/games/singleplayer/start', [GameController::class, 'startSinglePlayer']);
     // Route::post('/games/singleplayer/play', [GameController::class, 'playCardSinglePlayer']);
     // Route::post('/games/singleplayer/finish', [GameController::class, 'finishSinglePlayer']);
 
-    // ###############################
     // MULTIPLAYER (Bisca + WebSockets)
-    // ###############################
     // Route::post('/games/multiplayer/create', [GameController::class, 'createMultiplayer']);
     // Route::post('/games/multiplayer/join/{gameId}', [GameController::class, 'joinMultiplayer']);
     // Route::post('/games/multiplayer/leave/{gameId}', [GameController::class, 'leaveMultiplayer']);
     // Route::post('/games/multiplayer/finish/{gameId}', [GameController::class, 'finishMultiplayer']);
 
-    // ###############################
     // HISTÓRICO DE JOGOS
-    // ###############################
     // Route::get('/game-history', [GameHistoryController::class, 'getPersonalGameHistory']);
     // Route::get('/games', [GameController::class, 'index']);
 
-    // ###############################
     // ESTATÍSTICAS PESSOAIS
-    // ###############################
     // Route::get('/personal-statistics', [StatisticsController::class, 'getPersonalStatistics']);
-    // ###############################
+
     // TRANSAÇÕES / COINS
-    // ###############################
-    Route::get('coins/balance', [CoinController::class, 'getBalance']);
-    Route::post('coins/purchase', [CoinController::class, 'purchaseCoins']);
-    Route::get('coins/transactions', [CoinController::class, 'getTransactions']);
+    //Route::get('coins/balance', [CoinPurchaseController::class, 'getBalance']);
+    Route::post('coins/purchase', [CoinPurchaseController::class, 'purchaseCoins']);
+    Route::get('coins/transactions', [CoinTransactionController::class, 'getUserTransactions']);
 
     // ADMIN – gestão de utilizadores
     Route::get('/users', [UserController::class, 'index']);
@@ -96,7 +81,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/users/{id}/block', [UserController::class, 'toggleBlock']);
 
     // ADMIN – gestão de transações
-     Route::get('admin/coins/transactions', [CoinController::class, 'getAllTransactions']);
-    Route::get('admin/users/{id}/transactions', [CoinController::class, 'getUserTransactions']);
+     //Route::get('admin/coins/transactions', [CoinController::class, 'getAllTransactions']);
+    //Route::get('admin/users/{id}/transactions', [CoinController::class, 'getUserTransactions']);
 });
 

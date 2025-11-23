@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class CoinTransaction extends Model
 {
+
+    public $timestamps = false;
+
     protected $fillable = [
         'user_id',
         'coin_transaction_type_id',
@@ -28,7 +31,7 @@ class CoinTransaction extends Model
 
     public function coinTransactionType()
     {
-        return $this->belongsTo(CoinTransactionType::class);
+        return $this->belongsTo(CoinTransactionType::class, 'coin_transaction_type_id');
     }
 
     public function coinPurchase()
